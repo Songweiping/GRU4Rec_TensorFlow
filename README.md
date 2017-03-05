@@ -1,5 +1,5 @@
 # GRU4Rec_TensorFlow
-TensorFlow implementation of GRu4Rec, which was descibed in "Session-based Recommendations With Recurrent Neural Networks". See paper: http://arxiv.org/abs/1511.06939. 
+TensorFlow implementation of *GRu4Rec*, which was descibed in "Session-based Recommendations With Recurrent Neural Networks". See paper: http://arxiv.org/abs/1511.06939. 
 
 # Requirements
 The code is written under TensorFlow v0.12.1
