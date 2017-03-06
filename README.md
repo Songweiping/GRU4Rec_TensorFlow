@@ -9,7 +9,7 @@ Train/Test file should consists of three columns:
 
     * First column: SessionId  
     * Second column: ItemId  
-    * Third column: Timestamps(in UTC)
+    * Third column: Timestamps
 
 To train a model with default parameter settings:
 
