@@ -197,8 +197,8 @@ class GRU4Rec:
                     # prepare inputs, targeted outputs and hidden states
                     fetches = [self.cost, self.final_state, self.global_step, self.lr, self.train_op]
                     feed_dict = {self.X: in_idx, self.Y: out_idx}
-                    for i in xrange(self.layers): 
-                        feed_dict[self.state[i]] = state[i]
+                    for j in xrange(self.layers): 
+                        feed_dict[self.state[j]] = state[j]
                     
                     cost, state, step, lr, _ = self.sess.run(fetches, feed_dict)
                     epoch_cost.append(cost)
