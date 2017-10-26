@@ -4,7 +4,7 @@ TensorFlow implementation of *GRu4Rec*, which was descibed in "Session-based Rec
 # Requirements
 Python: 2.7
 
-Pandas 0.17 or later
+Pandas < 0.17 
 
 Numpy 1.12.1 or later
 
