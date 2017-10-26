@@ -2,7 +2,9 @@
 TensorFlow implementation of *GRu4Rec*, which was descibed in "Session-based Recommendations With Recurrent Neural Networks". See paper: http://arxiv.org/abs/1511.06939. 
 
 # Requirements
-The code is written under TensorFlow v0.12.1
+Python: 2.7
+
+TensorFlow: 0.12.1
 
 # Usage
 Train/Test file should consists of three columns:   
