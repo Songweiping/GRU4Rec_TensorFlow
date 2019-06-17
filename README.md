@@ -1,8 +1,11 @@
 # GRU4Rec_TensorFlow
-TensorFlow implementation of *GRu4Rec*, which was descibed in "Session-based Recommendations With Recurrent Neural Networks". See paper: http://arxiv.org/abs/1511.06939. 
+This is the TensorFlow implementation of *GRu4Rec*, which is descibed in ICLR'2016 paper "Session-based Recommendations With Recurrent Neural Networks". See paper: http://arxiv.org/abs/1511.06939. 
 
-# Update:
-GRU4Rec uses back-propagation instead of back-propagation through time (BPTT) for training. For a standard training with BPTT, please visit our sequential recommendation code base ([here](https://github.com/DeepGraphLearning/RecommenderSystems)), which has a much better performance for session-based recommendation or more general, sequential recommendation.
+* Codes under gru4rec\_BPTT use BPTT to train RNNs. This usually performs better than original gru4rec.
+* Codes under gru4rec\_BP use back propagation only to train RNNs, which is the optimization method adopted in original paper.
+
+# External Link
+We develop a general sequence-aware recommendation library at [here](https://github.com/DeepGraphLearning/RecommenderSystems).
 
 
 # Requirements
