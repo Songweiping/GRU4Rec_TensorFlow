@@ -81,8 +81,8 @@ class GRU4Rec:
             mask_loss = loss * self.mask
             self.cost = tf.reduce_sum(mask_loss) / tf.reduce_sum(self.mask)
         else:
-            logits = tf.matmul(output, softmax_W) + softmax_b
-            self.yhat = self.softmax(logits)
+            self.prediction = logits = tf.matmul(output, softmax_W) + softmax_b
+            self.hit_at_k, self.ndcg_at_k, self.num_target = self._metric_at_k()
 
         if not self.args.is_training:
             return
@@ -99,16 +99,23 @@ class GRU4Rec:
         self.train_op = optimizer.apply_gradients(capped_gvs, global_step=self.global_step)
 
    
-    def predict_session(self, sess, in_idx): #batch_size should be set to 1
-        '''
-        Args:
+    def _metric_at_k(self, k=20):
+        prediction = self.prediction
+        prediction_transposed = tf.transpose(prediction)
+        labels = tf.reshape(self.Y, shape=(-1,))
+        pred_values = tf.expand_dims(tf.diag_part(tf.nn.embedding_lookup(prediction_transposed, labels)), -1)
+        tile_pred_values = tf.tile(pred_values, [1, self.args.n_items])
+        ranks = tf.reduce_sum(tf.cast(prediction[:,1:] > tile_pred_values, dtype=tf.float32), -1) + 1
 
-        '''
-        if len(in_idx.shape) != 1:
-            raise Exception("Predict batch size must be one!")
-        fetches = self.yhat
-        in_idx = np.reshape(in_idx, (1, -1))
-        feed_dict = {self.X: in_idx}
+        ndcg = 1. / (log2(1.0 + ranks))
+        hit_at_k = tf.nn.in_top_k(prediction, labels, k=k) # also known as Recall@k
+        hit_at_k = tf.cast(hit_at_k, dtype=tf.float32)
+        istarget = tf.reshape(self.mask, shape=(-1,))
+        hit_at_k *= istarget
+        ndcg_at_k = ndcg * istarget
 
-        preds = sess.run(fetches, feed_dict)
-        return preds.T
+        return (tf.reduce_sum(hit_at_k), tf.reduce_sum(ndcg_at_k), tf.reduce_sum(istarget))
+def log2(x):
+    numerator = tf.log(x)
+    denominator = tf.log(tf.constant(2, dtype=numerator.dtype))
+    return numerator / denominator

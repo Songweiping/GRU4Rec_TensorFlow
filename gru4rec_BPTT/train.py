@@ -37,18 +37,18 @@ class Args():
     n_items = -1
     n_users = 1000
     init_from = None
-    eval_point = 1*1e2
+    eval_point = 1*1e3
 
 def parseArgs():
     args = Args()
     parser = argparse.ArgumentParser(description='LSTM4Rec args')
     parser.add_argument('--layer', default=1, type=int)
     parser.add_argument('--size', default=100, type=int)
-    parser.add_argument('--batch', default=50, type=int)
-    parser.add_argument('--epoch', default=3, type=int)
+    parser.add_argument('--batch', default=256, type=int)
+    parser.add_argument('--epoch', default=100, type=int)
     parser.add_argument('--lr', default=0.001, type=float)
     parser.add_argument('--dr', default=0.98, type=float)
-    parser.add_argument('--ds', default=50, type=int)
+    parser.add_argument('--ds', default=400, type=int)
     parser.add_argument('--keep', default='1.0', type=float)
     parser.add_argument('--init_from', default=None, type=str)
     command_line = parser.parse_args()
@@ -101,6 +101,8 @@ def train(args):
         data = list(zip(train_x, train_y))
         random.shuffle(data)
         train_x, train_y = zip(*data)
+        patience = 10
+        stop_cn = 0
 
         for epoch in xrange(args.n_epochs):
             epoch_cost = []
@@ -108,15 +110,12 @@ def train(args):
 
                 in_data = train_x[k*args.batch_size: (k+1)*args.batch_size]
                 out_data = train_y[k*args.batch_size: (k+1)*args.batch_size]
-                assert not np.any(np.isnan(in_data))
-                assert not np.any(np.isnan(out_data))
                 fetches = [model.nan, model.cost, model.global_step, model.lr, model.train_op]
                 feed_dict = {model.X: in_data, model.Y: out_data}
                 xnan, cost, step, lr, _ = sess.run(fetches, feed_dict)
                 epoch_cost.append(cost)
                 if np.isnan(cost):
                     print(str(epoch) + ':Nan error!')
-                    print(xnan)
                     error_during_train = True
                     return
                 if step == 1 or step % args.decay_steps == 0:
@@ -127,6 +126,7 @@ def train(args):
                     valid_losses.append(valid_loss)
                     print('Evaluation loss after step {}: {:.6f}'.format(step, valid_loss))
                     if valid_loss < best_loss:
+                        stop_cn = 0
                         best_epoch = epoch
                         best_step = step
                         best_loss = valid_losses[-1]
@@ -134,6 +134,12 @@ def train(args):
                         model.saver.save(sess, ckpt_path, global_step=step)
                         print("model saved to {}".format(ckpt_path))
                         sys.stdout.flush()
+                    else:
+                        stop_cn += 1
+                        if stop_cn >= patience:
+                            break
+            if stop_cn >= patience:
+                break
 
         print('Best evaluation loss appears in epoch {}, step {}. Lowest loss: {:.6f}'.format(best_epoch, best_step, best_loss))
         return

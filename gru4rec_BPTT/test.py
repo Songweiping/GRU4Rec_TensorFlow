@@ -41,11 +41,11 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='GRU4Rec args')
     parser.add_argument('--layer', default=1, type=int)
     parser.add_argument('--size', default=100, type=int)
-    parser.add_argument('--batch', default=50, type=int)
+    parser.add_argument('--batch', default=256, type=int)
     parser.add_argument('--epoch', default=5, type=int)
     parser.add_argument('--lr', default=0.001, type=float)
     parser.add_argument('--dr', default=0.98, type=float)
-    parser.add_argument('--ds', default=50, type=int)
+    parser.add_argument('--ds', default=400, type=int)
     parser.add_argument('--keep', default='1.0', type=float)
     command_line = parser.parse_args()
     
@@ -74,8 +74,8 @@ def evaluate(args):
         (Recall@N, MRR@N)
     '''
     args.n_items = n_items
-    evalutation_point_count = 0
-    mrr, recall, ndcg20, ndcg = 0.0, 0.0, 0.0, 0.0
+    evaluation_point_count = 0
+    mrr_l, recall_l, ndcg20_l, ndcg_l = 0.0, 0.0, 0.0, 0.0
     np.random.seed(42)
     
     gpu_config = tf.ConfigProto()
@@ -91,24 +91,22 @@ def evaluate(args):
         else:
             print('Restore model from {} failed!'.format(args.checkpoint_dir))
             return
-        for i in xrange(len(test_x)):
-            in_idx = np.asarray(test_x[i])
-            out_idx = test_y[i]
-            preds = model.predict_session(sess, in_idx)
-            ranks = (preds > np.diag(preds[out_idx])).sum(axis=0) + 1
-            #ranks = (preds.values.T[valid_mask].T > np.diag(preds.ix[in_idx].values)[valid_mask]).sum(axis=0) + 1
-            rank_ok = ranks < cut_off
-            recall += rank_ok.sum()
-            mrr += (1.0 / ranks[rank_ok]).sum()
-            ndcg20 += (1.0 / np.log2(1.0+ranks[rank_ok])).sum()
-            ndcg += (1.0 / np.log2(1.0+ranks)).sum()
-            assert len(out_idx) == len(ranks)
-            evalutation_point_count += len(ranks)
-    return recall/evalutation_point_count, mrr/evalutation_point_count, ndcg20 / evalutation_point_count, ndcg / evalutation_point_count
+        batch_idx = 0
+        while batch_idx < len(test_x):
+            batch_x = test_x[batch_idx: batch_idx + args.batch_size]
+            batch_y = test_y[batch_idx: batch_idx + args.batch_size]
+            feed_dict = {model.X: batch_x, model.Y: batch_y}
+            hit, ndcg, n_target = sess.run([model.hit_at_k, model.ndcg_at_k, model.num_target], feed_dict=feed_dict)
+            recall_l += hit
+            ndcg_l += ndcg
+            evaluation_point_count += n_target
+            batch_idx += args.batch_size
+
+    return recall_l / evaluation_point_count, ndcg_l / evaluation_point_count
 
 if __name__ == '__main__':
     args = parseArgs()
     res = evaluate(args)
     print('lr: {}\tbatch_size: {}\tdecay_steps:{}\tdecay_rate:{}\tkeep_prob:{}\tdim: {}\tlayer: {}'.format(args.learning_rate, args.batch_size, args.decay_steps, args.decay, args.keep_prob, args.rnn_size, args.layers))
-    print('Recall@20: {}\tMRR@20: {}\tNDCG@20: {}\tNDCG: {}'.format(res[0], res[1], res[2], res[3]))
+    print('Recall@20: {}\tNDCG: {}'.format(res[0], res[1]))
     sys.stdout.flush()
